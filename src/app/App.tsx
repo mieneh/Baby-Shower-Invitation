@@ -755,16 +755,18 @@ export default function App() {
                         </span>
                       </div>
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-3">
-                          <span className="text-pink-700 text-lg">
-                            {wish.name}
-                          </span>
+                        <div className="hidden md:flex items-center gap-3 mb-3">
+                          <span className="text-pink-700 text-base font-medium">{wish.name}</span>
                           <span className="text-pink-300">•</span>
-                          <span className="text-pink-400 text-sm">
+                          <span className="text-pink-400 text-sm whitespace-nowrap">
                             {formatDate(wish.created_at)}
                           </span>
                         </div>
-                        <p className="text-pink-800 leading-relaxed text-lg">
+                        <div className="md:hidden grid gap-1 mb-3">
+                          <span className="text-pink-700 text-base font-medium">{wish.name}</span>
+                          <span className="text-pink-400 text-sm italic">{formatDate(wish.created_at)}</span>
+                        </div>
+                        <p className="text-pink-800 leading-relaxed text-base">
                           {wish.message}
                         </p>
                       </div>
