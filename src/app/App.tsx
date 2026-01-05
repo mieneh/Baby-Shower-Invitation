@@ -22,13 +22,22 @@ import {
 import { ImageWithFallback } from "./components/ImageWithFallback";
 import { PlayfulGallery } from "./components/PlayfulGallery";
 import { motion } from "motion/react";
-import { supabase } from "../lib/supabase";
+import { db } from "../lib/firebase";
+import {
+  collection,
+  addDoc,
+  query,
+  orderBy,
+  getDocs,
+  serverTimestamp,
+  Timestamp,
+} from "firebase/firestore";
 
 interface Wish {
   id: string;
   name: string;
   message: string;
-  created_at: string;
+  created_at: Timestamp;
 }
 
 export default function App() {
@@ -139,16 +148,19 @@ export default function App() {
     },
   ];
 
+  const fetchWishes = async () => {
+    const q = query(collection(db, "wishes"), orderBy("created_at", "desc"));
+    const snapshot = await getDocs(q);
+
+    const data = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Wish[];
+
+    setWishes(data);
+  };
+
   useEffect(() => {
-    const fetchWishes = async () => {
-      const { data, error } = await supabase
-        .from("wishes")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (!error && data) {
-        setWishes(data);
-      }
-    };
     fetchWishes();
   }, []);
 
@@ -158,33 +170,28 @@ export default function App() {
 
     setIsSubmitting(true);
 
-    const { error } = await supabase.from("wishes").insert([
-      {
+    try {
+      await addDoc(collection(db, "wishes"), {
         name: name.trim(),
         message: message.trim(),
-      },
-    ]);
+        created_at: serverTimestamp(),
+      });
 
-    if (error) {
-      console.error(error);
-      alert("Gửi lời chúc thất bại.");
-    } else {
       setName("");
       setMessage("");
       setCurrentPage(1);
-      const { data } = await supabase
-        .from("wishes")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (data) setWishes(data);
+      await fetchWishes(); 
+    } catch (error) {
+      console.error(error);
+      alert("Gửi lời chúc thất bại.");
     }
-
     setIsSubmitting(false);
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("vi-VN", {
+  const formatDate = (date: any) => {
+    if (!date) return "";
+    const d = date.toDate();
+    return d.toLocaleDateString("vi-VN", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -193,7 +200,6 @@ export default function App() {
     });
   };
 
-  // Pagination logic
   const indexOfLastWish = currentPage * wishesPerPage;
   const indexOfFirstWish = indexOfLastWish - wishesPerPage;
   const currentWishes = wishes.slice(indexOfFirstWish, indexOfLastWish);
